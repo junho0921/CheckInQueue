@@ -1,0 +1,116 @@
+= 排队模块
+:toc: left
+:toclevels: 3
+:toc-title: 目录
+:numbered:
+:sectanchors:
+:sectlinks:
+:sectnums:
+
+== 基本使用
+
+var config = {...};
+var q = new CheckInQueue(config);
+q.push(callback, data);
+
+=== 配置config
+
+自由时间设置::
+    setFreeGap: function(){return 3000;}
+
+保护时间设置::
+    setProtectGap: function(d){return d.type ? 1000: 2000;}
+
+设置队列顺序::
+    adjustQueue: functions(queue){
+        var selfIndex = null, selfData;
+        queue.forEach((item, i) => {
+            if(isNaN(selfIndex) && item.isSelf){
+                selfData = item;
+                selfIndex = i;
+            }
+        });
+        queue.splice(selfIndex, 1);
+        queue.unShift(item);
+    }
+
+== 代码
+
+=== 状态
+
+. onShowItem 正在展示的item
+. queue 正在排队的
+. timer 定时器
+
+===== 重置本实例所有状态
+
+this.onShowItem = null;
+this.queue = [];
+this.timer = null;
+
+=== 外部方法push
+
+push::
+    queue.push(item);
+    runStep();
+
+==== 内部方法
+
+===== 设置定时器
+
+setGap:: (duration) => setTimeout(runStep, duration);
+
+===== executeItem
+
+executeItem::
+. toShowItem = 抽出queue第一个
+. setGap(toShowItem是否最后? 自由时长: 保护时长)
+. 标记onShowItem = toShowItem
+. 标记onShowItem.showTime = Date.now();
+. 执行item.callback
+    .. 成功:
+        ... hook: onShowItem(toShowItem);
+    .. 失败:
+        ... 标记onShowItem = null
+        ... setGap(0);
+
+===== 轮询器
+
+runStep::
+. 是否: 有queue的items
+    .. 是
+        ... 是否: 有正在展示的item (onShowItem)
+            .... 否
+                ..... hook: onFirstShow
+                ..... executeItem();
+            .... 是
+                ..... 是否: 展示item的已经展示时长 > item的保护时长(计算)
+                    ...... 是
+                        ....... executeItem();
+                    ...... 否
+                        ....... return false;
+    .. 否
+        ... 重置本实例所有状态
+
+== 总结
+
+队列排队因为有保护时间,
+
+所以, 排队消息模块需要的状态必须要缓存正在展示的
+
+原本, 我贪方便, 就让正在再展示的item留在队列里面, 这样就模糊了排队队列, 也就是队列不仅有排队的状态, 还有正展示的状态.
+
+这种模糊状态记录, 让我花费了很大的力气去整理各种状态的逻辑.
+
+排队item与正在展示的item的状态耦合
+
+需要判断item在插入队列时候触发的逻辑
+
+也需要判断定时器轮询队列时候触发的逻辑,
+
+后来解耦了这两个状态,问题变得很简单了.
+
+所以,
+
+当我遇到状态分析很复杂时候, 需要提醒自己, 可能是状态管理出现不合理的结构了.
+
