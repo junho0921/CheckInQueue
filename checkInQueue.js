@@ -6,27 +6,33 @@
   var isDefined = false;
 
   if(typeof define === 'function'){
-    define('checkInQueue', factory);
+    define('CheckInQueue', factory);
     isDefined = true;
   }
 
   if(typeof fxDefine === 'function'){
-    fxDefine('checkInQueue', factory);
+    fxDefine('CheckInQueue', factory);
     isDefined = true;
   }
 
   if(!isDefined){
-    window.checkInQueue = factory();
+    if(typeof module === 'object'){
+      module.exports = factory();
+    }else{
+      try{
+        window.CheckInQueue = factory();
+      }catch (e) {}
+    }
   }
 
 })(function() {
   'use strict';
 
   /*
-  * class CheckInQueue
-  * @desc 时间队列
-  *
-  * */
+   * class CheckInQueue
+   * @desc 时间队列
+   *
+   * */
   function CheckInQueue (config) {
     this._init(config);
     return this;
@@ -40,13 +46,13 @@
       getFreeTime: function(){return 1000;},
       getProtectTime: function(){return 1000;},
       onPushQueue: function (queue) {},
-      error: function () {console.log('_______ ', arguments);},
+      //error: function () {console.log('_______ ', arguments);},
       // 队列的最大排队数量
       enterListMaxLength: 200 // 进房信息缓存的最大长度
     },
     // 初始化方法
     _init: function (config) {
-      this.config = $.extend({}, this._config, config);
+      this.config = Object.assign ? Object.assign({}, this._config, config) : window.$.extend({}, this._config, config);
       // 创建队列
       this._reset();
     },
@@ -57,17 +63,17 @@
     },
     // 触发生命周期事件
     trigger: function (hookName, arg) {
-      if(hookName && $.isFunction(this.config[hookName])){
+      if(hookName && typeof this.config[hookName] === 'function'){
         this.config[hookName].apply(this, arg);
       }
     },
 
     /*
-    * func push 外部API
-    * @desc 插入队列方法
-    * @param callback
-    * @param arg
-    * */
+     * func push 外部API
+     * @desc 插入队列方法
+     * @param callback
+     * @param arg
+     * */
     push: function (callback, data) {
       data = data || {};
       if (!data || typeof data !== 'object') {
@@ -79,16 +85,17 @@
       }
       // 缓存本进房信息, 准备第一个结束后就展示
       /*
-      * 缓存的数据结构 todo 文档
-      * */
+       * 缓存的数据结构 todo 文档
+       * */
       this.queue.push({
         callback: callback,
         data: data,
         _queueTime: Date.now(), // 测试
         getFreeTime: data.getFreeTime || this.config.getFreeTime,
         getProtectTime: data.getProtectTime || this.config.getProtectTime
-    });
-      this._setGap(0);
+      });
+      this.trigger('onPushQueue', [this.queue]);
+      this.runStep(0);
       return true;
     },
     _setGap: function(time){
@@ -116,8 +123,8 @@
       }
     },
     /*
-    * func runStep
-    * */
+     * func runStep
+     * */
     runStep: function (time) {
       // 测试模式: 记录定时的时长与执行的当前时间
       this.trigger('runStep', [this.queue, time]);
@@ -131,6 +138,7 @@
             if(onShowDuration > cItem.getFreeTime(cItem.data)){this.trigger('error', ['超时展示', cItem.data, onShowDuration]);}
             return this.executeItem();
           }else{
+            this.trigger('onWait', [this.queue, time]);
             return false;
           }
         }else{
@@ -139,6 +147,7 @@
         }
       }else{
         // 重置本实例所有状态
+        this.trigger('onLast', [this.onShowItem && this.onShowItem.data]);
         this._reset();
       }
     },
@@ -154,9 +163,9 @@
         this.onShowItem = toShowItem;
 
         if(toShowItem.callback() !== false){
-          this.trigger('onShow', [toShowItem]);
+          this.trigger('onShow', [toShowItem.data]);
         }else{
-          this.trigger('onFailShow', [toShowItem]);
+          this.trigger('onFailShow', [toShowItem.data]);
           this.onShowItem.getProtectTime = function(){return -1;};
           this._setGap(0);
         }

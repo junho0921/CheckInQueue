@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>checkInQueue</title>
+	<script type="text/javascript" src="../checkInQueue.js"></script>
+</head>
+<body>
+<button id='pushMsg'>pushMsg</button>
+</body>
+<script>
+	var q = new CheckInQueue({
+		// 获取时间的方法
+		getFreeTime: function(){return 4000;},
+		getProtectTime: function(){return 1000;},
+		onPushQueue: function (queue) {},
+		// 队列的最大排队数量
+		enterListMaxLength: 200, // 进房信息缓存的最大长度
+
+		// 测试
+		onWait: function () {
+			console.log('--> 排队', arguments[0])
+		},
+		onShow: function(item){
+			var now = new Date();
+			console.warn('onShow', item, now.getMinutes(), now.getSeconds());
+		},
+		error: function () {console.log('_______ ', arguments);},
+		onLast: function (){
+			console.error('onLast', arguments);
+		}
+	});
+
+	var count = 1;
+	document.querySelector('#pushMsg').onclick = function(){
+		q.push(function(){
+			console.log('--------'+ count +'--------');
+		}, {id:count});
+		count++;
+	}
+
+</script>
+</html>
