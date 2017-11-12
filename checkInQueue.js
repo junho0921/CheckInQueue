@@ -122,23 +122,33 @@
         }, time);
       }
     },
+    _torrence: 10,
     /*
      * func runStep
      * */
     runStep: function (time) {
       // 测试模式: 记录定时的时长与执行的当前时间
       this.trigger('runStep', [this.queue, time]);
+      console.log('runStep ------------- this.onShowItem', this.onShowItem && this.onShowItem.data);
       if(this.queue.length){
         var cItem = this.onShowItem;
         if(cItem){
           var onShowDuration = Date.now() - cItem._showTime;
           var protect = cItem.getProtectTime(cItem.data);
-          if(onShowDuration > protect){
+          if(onShowDuration >= (protect-this._torrence)){
             // 测试代码:
             if(onShowDuration > cItem.getFreeTime(cItem.data)){this.trigger('error', ['超时展示', cItem.data, onShowDuration]);}
             return this.executeItem();
           }else{
             this.trigger('onWait', [this.queue, time]);
+            if(cItem.isFree){
+              cItem.isFree = false;
+              console.error('自由时间 - ', onShowDuration, protect);
+              return this._setGap(protect - onShowDuration);
+            }else{
+              console.error('')
+            }
+
             return false;
           }
         }else{
@@ -154,9 +164,14 @@
 
     executeItem: function () {
       var toShowItem = this.queue.shift();
+      console.log("executeItem", toShowItem.data);
       if(toShowItem){
+        var hasNext = !!this.queue.length;
+        console.log('hasNext', hasNext);
+        console.log('getProtectTime', toShowItem.getProtectTime());
+        console.log('getFreeTime', toShowItem.getFreeTime());
         this._setGap(
-          this.queue.length ? toShowItem.getFreeTime() : toShowItem.getProtectTime()
+          hasNext ? toShowItem.getProtectTime() : toShowItem.getFreeTime()
         );
         // 必须要在callback执行前记录时间与缓存, 因为callback里可能有插入队列的操作
         toShowItem._showTime = Date.now();
@@ -164,6 +179,7 @@
 
         if(toShowItem.callback() !== false){
           this.trigger('onShow', [toShowItem.data]);
+          this.onShowItem.isFree = !hasNext;
         }else{
           this.trigger('onFailShow', [toShowItem.data]);
           this.onShowItem.getProtectTime = function(){return -1;};

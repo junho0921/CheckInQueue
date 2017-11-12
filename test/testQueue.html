@@ -9,35 +9,57 @@
 <button id='pushMsg'>pushMsg</button>
 </body>
 <script>
+	var
+			FreeGap = 400,
+			protectGap = 100;
+
 	var q = new CheckInQueue({
 		// 获取时间的方法
-		getFreeTime: function(){return 4000;},
-		getProtectTime: function(){return 1000;},
+		getFreeTime: function(){return FreeGap;},
+		getProtectTime: function(){return protectGap;},
 		onPushQueue: function (queue) {},
 		// 队列的最大排队数量
 		enterListMaxLength: 200, // 进房信息缓存的最大长度
 
 		// 测试
+		onFirstShow: function () {
+			window._s = Date.now();
+		},
 		onWait: function () {
-			console.log('--> 排队', arguments[0])
+			console.log('--> 排队', arguments[0].map(function(d){return d.data.id}), arguments[1])
 		},
 		onShow: function(item){
 			var now = new Date();
-			console.warn('onShow', item, now.getMinutes(), now.getSeconds());
+			console.warn('onShow', item, [now.getMinutes(),now.getSeconds(),now.getMilliseconds()].join('-'));
 		},
 		error: function () {console.log('_______ ', arguments);},
 		onLast: function (){
-			console.error('onLast', arguments);
+			console.error('onLast', Date.now() - window._s);
 		}
 	});
 
 	var count = 1;
-	document.querySelector('#pushMsg').onclick = function(){
+
+	function pMsg(){
 		q.push(function(){
 			console.log('--------'+ count +'--------');
 		}, {id:count});
 		count++;
 	}
+	document.querySelector('#pushMsg').onclick = pMsg;
 
+	pMsg();
+
+	function delay(func, time){
+		console.log('-=====', func, time)
+		return setTimeout(func, time);
+	}
+	function delayPMsg(time){
+		delay(pMsg, time || FreeGap - protectGap);
+	}
+
+	pMsg();
+	delayPMsg(200);
+	delayPMsg(400);
 </script>
 </html>
