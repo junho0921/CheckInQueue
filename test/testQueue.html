@@ -33,7 +33,7 @@
 			console.warn('onShow', item, [now.getMinutes(),now.getSeconds(),now.getMilliseconds()].join('-'));
 		},
 		error: function () {console.log('_______ ', arguments);},
-		onLast: function (){
+		onEnd: function (){
 			console.error('onLast', Date.now() - window._s);
 		}
 	});
