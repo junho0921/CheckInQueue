@@ -143,7 +143,6 @@
          * @desc 轮询器
          * */
         runStep: function (time) {
-            // 测试模式: 记录定时的时长与执行的当前时间
             this.trigger('runStep', [this.queue, time]);
             // 检查排队队列
             if(this.queue.length){
@@ -206,7 +205,7 @@
                 if(toShowItem.callback() !== false){
                     if(isFirst){
                         // 有排队的item, 没有显示中的item, 表示第一个显示
-                        this.trigger('onFirstShow', [this.queue, time]);
+                        this.trigger('onFirstShow', [toShowItem.data]);
                     }
                     this.trigger('onShow', [toShowItem.data]);
                     // 标记正在展示的item是否自由时间状态

@@ -6,12 +6,13 @@
 	<script type="text/javascript" src="../checkInQueue.js"></script>
 </head>
 <body>
+<div id="tips" style="height: 30px;font-size: 30px; width: 200x;"></div>
 <button id='pushMsg'>pushMsg</button>
 </body>
 <script>
-	var
-			FreeGap = 400,
-			protectGap = 100;
+    var
+        FreeGap = 4000,
+        protectGap = 2000;
 
 	var q = new CheckInQueue({
 		// 获取时间的方法
@@ -35,15 +36,20 @@
 		error: function () {console.log('_______ ', arguments);},
 		onEnd: function (){
 			console.error('onLast', Date.now() - window._s);
+            $tips.innerText = '';
 		}
 	});
 
 	var count = 1;
 
+	var $tips = document.querySelector('#tips');
 	function pMsg(){
-		q.push(function(){
-			console.log('--------'+ count +'--------');
-		}, {id:count});
+		q.push((function(count){
+			return function () {
+                $tips.innerText = '测试--- [ ' + count+ ' ]';
+                console.log('--------'+ count +'--------');
+            }
+		})(count), {id:count});
 		count++;
 	}
 	document.querySelector('#pushMsg').onclick = pMsg;
